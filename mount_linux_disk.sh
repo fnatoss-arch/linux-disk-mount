@@ -1,8 +1,8 @@
 #!/bin/zsh
 # Монтує всі ext2/ext3/ext4 розділи з Linux-диска
-# Автовизначення зовнішнього фізичного диска з GUID_partition_scheme (без Apple_APFS)
+# Автовизначення зовнішнього фізичного диска (MBR або GPT, без Apple_APFS)
 LINUX_DISK=""
-for disk in $(diskutil list | grep -A2 'external, physical' | grep 'GUID_partition_scheme' | grep -oE 'disk[0-9]+'); do
+for disk in $(diskutil list | grep -A2 'external, physical' | grep -E 'FDisk_partition_scheme|GUID_partition_scheme' | grep -oE 'disk[0-9]+'); do
   if ! diskutil list "$disk" | grep -q 'Apple_APFS'; then
     LINUX_DISK="$disk"
     break
@@ -54,9 +54,22 @@ for part in $(diskutil list "$LINUX_DISK" | grep -oE "${LINUX_DISK}s[0-9]+"); do
     continue
   fi
 
+  # Перевірити наявність пристрою
+  if [[ ! -e "/dev/$part" ]]; then
+    skipped+=("   $part → пристрій не знайдено (розділ всередині extended)")
+    continue
+  fi
+
   # Визначити мітку
   label="${LABELS[$slice]:-$slice}"
   mountpoint="/Volumes/$label"
+
+  # Перевірити чи вже змонтовано
+  if mount | grep -q "$mountpoint"; then
+    echo "⏩ $mountpoint вже змонтовано"
+    ((mounted++))
+    continue
+  fi
 
   echo "→ Монтування /dev/$part → $mountpoint"
   sudo mkdir -p "$mountpoint"
