@@ -55,6 +55,7 @@ declare -A SKIP_PARTS=(
 ## Розмонтування
 
 ```zsh
-# Розмонтувати всі ext4fuse томи:
-mount | grep ext4fuse | awk '{print $3}' | while read mp; do sudo umount "$mp"; done
+./umount_linux_disk.sh
 ```
+
+Скрипт автоматично знаходить всі ext4fuse томи в `/Volumes/s*`, розмонтовує їх та видаляє порожні точки монтування.
